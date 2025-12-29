@@ -9,7 +9,7 @@ import AuthPage from "@/pages/auth";
 import AnalyticsPage from "@/pages/analytics";
 import NotFound from "@/pages/not-found";
 
-console.log("CF API BASE:", import.meta.env.VITE_API_BASE_URL);
+console.log("CF API BASE:", import.meta.env.VITE_API_BASE_URL, "PROD?", import.meta.env.PROD);
 
 function AuthenticatedApp() {
   const { data: user, isLoading, error } = useQuery<{ id: string; username: string }>({

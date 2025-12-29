@@ -1,0 +1,154 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "-apple-system",
+      "count": 57
+    },
+    {
+      "family": "BlinkMacSystemFont",
+      "count": 57
+    },
+    {
+      "family": "Segoe UI",
+      "count": 57
+    },
+    {
+      "family": "Roboto",
+      "count": 57
+    },
+    {
+      "family": "Oxygen",
+      "count": 57
+    },
+    {
+      "family": "Ubuntu",
+      "count": 57
+    },
+    {
+      "family": "Cantarell",
+      "count": 57
+    },
+    {
+      "family": "Fira Sans",
+      "count": 57
+    },
+    {
+      "family": "Droid Sans",
+      "count": 57
+    },
+    {
+      "family": "Helvetica Neue",
+      "count": 57
+    }
+  ],
+  "colors": {
+    "primary": "#FEF5EA",
+    "accent": "#A24F0B",
+    "background": "#FFFFFF",
+    "textPrimary": "#1D1F20",
+    "link": "#A24F0B"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "-apple-system",
+      "heading": "-apple-system"
+    },
+    "fontStacks": {
+      "body": [
+        "-apple-system",
+        "BlinkMacSystemFont",
+        "Segoe UI",
+        "Roboto",
+        "Oxygen",
+        "Ubuntu",
+        "Cantarell",
+        "Fira Sans",
+        "Droid Sans",
+        "Helvetica Neue",
+        "sans-serif"
+      ],
+      "heading": [
+        "-apple-system",
+        "BlinkMacSystemFont",
+        "Segoe UI",
+        "Roboto",
+        "Oxygen",
+        "Ubuntu",
+        "Cantarell",
+        "Fira Sans",
+        "Droid Sans",
+        "Helvetica Neue",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "-apple-system",
+        "BlinkMacSystemFont",
+        "Segoe UI",
+        "Roboto",
+        "Oxygen",
+        "Ubuntu",
+        "Cantarell",
+        "Fira Sans",
+        "Droid Sans",
+        "Helvetica Neue",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "63.75px",
+      "h2": "46.75px",
+      "body": "25.5px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "3px"
+  },
+  "components": {
+    "input": {
+      "background": "#FFFFFF",
+      "textColor": "#000000",
+      "borderColor": null,
+      "borderRadius": "0px",
+      "borderRadiusCorners": {
+        "topLeft": "0px",
+        "topRight": "0px",
+        "bottomRight": "0px",
+        "bottomLeft": "0px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": "File saved at: attached_assets/logo.svg",
+    "favicon": "https://pages.cloudflare.com/favicon.ico",
+    "ogImage": null
+  },
+  "__framework_hints": [
+    "Gatsby 5.14.1"
+  ],
+  "__llm_logo_reasoning": {
+    "selectedIndex": 0,
+    "reasoning": "Strong indicators: header logo linking to homepage, header location, visible, top-left position, highest logo on page, src contains logo, reasonable size, SVG format. Score: 120 (clear winner by 57 points)",
+    "confidence": 0.9
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": -1,
+      "text": "N/A",
+      "reasoning": "LLM failed"
+    },
+    "secondary": {
+      "index": -1,
+      "text": "N/A",
+      "reasoning": "LLM failed"
+    },
+    "confidence": 0
+  },
+  "confidence": {
+    "buttons": 0,
+    "colors": 0,
+    "overall": 0
+  }
+}
