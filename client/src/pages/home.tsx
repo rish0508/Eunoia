@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, addMonths, subMonths } from "date-fns";
-import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, BookOpen, Utensils, Dumbbell, Target, Image as ImageIcon, Smile, Frown, Meh, ThumbsUp, ThumbsDown, X } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, BookOpen, Utensils, Dumbbell, Target, Image as ImageIcon, Video, Smile, Frown, Meh, ThumbsUp, ThumbsDown, X, Star, Moon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { entryFormSchema, type JournalEntry, type GymStatus, type Mood, type InsertJournalEntry, type EntryFormValues } from "@shared/schema";
+import { entryFormSchema, dailyQuotes, type JournalEntry, type GymStatus, type Mood, type InsertJournalEntry, type EntryFormValues } from "@shared/schema";
 
 const moodIcons = {
   great: ThumbsUp,
@@ -27,11 +27,11 @@ const moodIcons = {
 };
 
 const moodColors = {
-  great: "text-green-500 dark:text-green-400",
-  good: "text-emerald-500 dark:text-emerald-400",
-  okay: "text-amber-500 dark:text-amber-400",
-  low: "text-orange-500 dark:text-orange-400",
-  rough: "text-red-500 dark:text-red-400",
+  great: "text-emerald-400 dark:text-emerald-300",
+  good: "text-green-400 dark:text-green-300",
+  okay: "text-amber-400 dark:text-amber-300",
+  low: "text-orange-400 dark:text-orange-300",
+  rough: "text-red-400 dark:text-red-300",
 };
 
 const gymStatusLabels = {
@@ -41,10 +41,46 @@ const gymStatusLabels = {
 };
 
 const gymStatusColors = {
-  worked_out: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  worked_out: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
   rest_day: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   skipped: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
 };
+
+function getDailyQuote(date: Date): string {
+  const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000);
+  return dailyQuotes[dayOfYear % dailyQuotes.length];
+}
+
+function StarField() {
+  const stars = useMemo(() => {
+    return Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      size: Math.random() * 3 + 1,
+      delay: Math.random() * 5,
+      duration: 3 + Math.random() * 4,
+    }));
+  }, []);
+
+  return (
+    <div className="starfield">
+      {stars.map((star) => (
+        <div
+          key={star.id}
+          className="star text-primary/40 dark:text-primary/60"
+          style={{
+            left: `${star.left}%`,
+            top: `${star.top}%`,
+            width: `${star.size}px`,
+            height: `${star.size}px`,
+            animation: `twinkle ${star.duration}s ease-in-out ${star.delay}s infinite`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 type View = "today" | "calendar";
 
@@ -61,6 +97,7 @@ export default function Home() {
   });
 
   const todayEntry = entries.find((e) => isSameDay(parseISO(e.date), selectedDate));
+  const dailyQuote = getDailyQuote(selectedDate);
 
   const handleSaveEntry = async (formData: InsertJournalEntry) => {
     try {
@@ -101,13 +138,19 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background" data-testid="page-home">
-      <div className="fixed inset-0 bg-gradient-to-br from-background via-background to-muted/30 -z-10" />
+      <StarField />
+      <div className="fixed inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/10 -z-10" />
       
       <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm" data-testid="header-main">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <BookOpen className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-semibold" data-testid="text-app-title">My Journal</h1>
+            <div className="relative">
+              <Moon className="h-6 w-6 text-primary animate-float" />
+              <Sparkles className="h-3 w-3 text-accent absolute -top-1 -right-1" />
+            </div>
+            <h1 className="text-xl font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent" data-testid="text-app-title">
+              Eunoia
+            </h1>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -133,6 +176,17 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-4xl" data-testid="main-content">
+        <Card className="mb-6 bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20" data-testid="quote-card">
+          <CardContent className="py-4 px-6">
+            <div className="flex items-start gap-3">
+              <Star className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+              <p className="text-sm italic text-foreground/80" data-testid="text-daily-quote">
+                "{dailyQuote}"
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {view === "today" ? (
           <TodayView
             selectedDate={selectedDate}
@@ -171,6 +225,7 @@ export default function Home() {
           selectedDate={selectedDate}
           onSave={handleSaveEntry}
           onClose={() => setIsDialogOpen(false)}
+          isOpen={isDialogOpen}
         />
       </Dialog>
     </div>
@@ -200,7 +255,8 @@ function TodayView({
     <div className="space-y-6" data-testid="view-today">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <p className="text-sm text-muted-foreground" data-testid="text-day-label">
+          <p className="text-sm text-muted-foreground flex items-center gap-2" data-testid="text-day-label">
+            <Moon className="h-3 w-3" />
             {isToday ? "Today" : format(selectedDate, "EEEE")}
           </p>
           <h2 className="text-2xl font-semibold" data-testid="text-selected-date">
@@ -280,8 +336,8 @@ function EntryCard({
               </div>
             )}
             {entry.targetMet && (
-              <Badge variant="secondary" className="gap-1" data-testid="badge-target-met">
-                <Target className="h-3 w-3" />
+              <Badge variant="secondary" className="gap-1 bg-accent/20 text-accent-foreground" data-testid="badge-target-met">
+                <Star className="h-3 w-3" />
                 Target Met
               </Badge>
             )}
@@ -308,6 +364,18 @@ function EntryCard({
         </div>
       </div>
       <CardContent className="space-y-6 pt-0">
+        {entry.targetPlan && (
+          <div className="space-y-2 p-4 rounded-md bg-accent/10 border border-accent/20">
+            <div className="flex items-center gap-2 text-accent-foreground">
+              <Target className="h-4 w-4" />
+              <span className="text-sm font-medium">Today's Target</span>
+            </div>
+            <p className="text-foreground leading-relaxed whitespace-pre-wrap" data-testid="text-target-plan">
+              {entry.targetPlan}
+            </p>
+          </div>
+        )}
+
         {entry.reflection && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -376,6 +444,30 @@ function EntryCard({
             </div>
           </div>
         )}
+
+        {entry.videos && entry.videos.length > 0 && (
+          <div className="space-y-2" data-testid="section-videos">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Video className="h-4 w-4" />
+              <span className="text-sm font-medium">Videos</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {entry.videos.map((vid, idx) => (
+                <div
+                  key={idx}
+                  className="aspect-video rounded-md overflow-hidden bg-muted"
+                >
+                  <video
+                    src={vid}
+                    controls
+                    className="w-full h-full object-cover"
+                    data-testid={`video-entry-${idx}`}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -385,21 +477,21 @@ function EmptyState({ onNewEntry, date }: { onNewEntry: () => void; date: Date }
   const isToday = isSameDay(date, new Date());
 
   return (
-    <Card className="border-dashed" data-testid="empty-state">
+    <Card className="border-dashed border-primary/30" data-testid="empty-state">
       <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-          <BookOpen className="h-8 w-8 text-muted-foreground" />
+        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+          <Moon className="h-8 w-8 text-primary" />
         </div>
         <h3 className="text-lg font-medium mb-2" data-testid="text-empty-title">
           {isToday ? "Start your journal entry" : "No entry for this day"}
         </h3>
         <p className="text-muted-foreground mb-6 max-w-sm" data-testid="text-empty-description">
           {isToday
-            ? "Capture your thoughts, track your progress, and reflect on your day."
+            ? "Capture your thoughts, set your intentions, and reflect on your journey."
             : `You didn't write anything on ${format(date, "MMMM d")}.`}
         </p>
         <Button onClick={onNewEntry} data-testid="button-create-entry">
-          <Plus className="h-4 w-4 mr-2" />
+          <Sparkles className="h-4 w-4 mr-2" />
           Create Entry
         </Button>
       </CardContent>
@@ -433,7 +525,8 @@ function CalendarView({
   return (
     <div className="space-y-6" data-testid="view-calendar">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-2xl font-semibold" data-testid="text-calendar-month">
+        <h2 className="text-2xl font-semibold flex items-center gap-2" data-testid="text-calendar-month">
+          <Moon className="h-5 w-5 text-primary" />
           {format(calendarMonth, "MMMM yyyy")}
         </h2>
         <div className="flex items-center gap-2">
@@ -509,7 +602,7 @@ function CalendarView({
                         <MoodIcon className={`h-3 w-3 ${moodColors[entry.mood as Mood]}`} />
                       )}
                       {entry.targetMet && (
-                        <Target className="h-3 w-3 text-primary" />
+                        <Star className="h-3 w-3 text-accent" />
                       )}
                     </div>
                   )}
@@ -526,7 +619,7 @@ function CalendarView({
           <span>Has Entry</span>
         </div>
         <div className="flex items-center gap-2">
-          <Target className="h-3 w-3 text-primary" />
+          <Star className="h-3 w-3 text-accent" />
           <span>Target Met</span>
         </div>
       </div>
@@ -539,26 +632,58 @@ function EntryForm({
   selectedDate,
   onSave,
   onClose,
+  isOpen,
 }: {
   entry: JournalEntry | null;
   selectedDate: Date;
   onSave: (data: InsertJournalEntry) => void;
   onClose: () => void;
+  isOpen: boolean;
 }) {
-  const [images, setImages] = useState<string[]>(entry?.images || []);
+  const [images, setImages] = useState<string[]>([]);
+  const [videos, setVideos] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<EntryFormValues>({
     resolver: zodResolver(entryFormSchema),
     defaultValues: {
-      reflection: entry?.reflection || "",
-      mood: entry?.mood || "",
-      gymStatus: entry?.gymStatus || "",
-      gymNotes: entry?.gymNotes || "",
-      food: entry?.food || "",
-      targetMet: entry?.targetMet || false,
+      targetPlan: "",
+      reflection: "",
+      mood: "",
+      gymStatus: "",
+      gymNotes: "",
+      food: "",
+      targetMet: false,
     },
   });
+
+  useEffect(() => {
+    if (entry) {
+      form.reset({
+        targetPlan: entry.targetPlan || "",
+        reflection: entry.reflection || "",
+        mood: entry.mood || "",
+        gymStatus: entry.gymStatus || "",
+        gymNotes: entry.gymNotes || "",
+        food: entry.food || "",
+        targetMet: entry.targetMet || false,
+      });
+      setImages(entry.images || []);
+      setVideos(entry.videos || []);
+    } else {
+      form.reset({
+        targetPlan: "",
+        reflection: "",
+        mood: "",
+        gymStatus: "",
+        gymNotes: "",
+        food: "",
+        targetMet: false,
+      });
+      setImages([]);
+      setVideos([]);
+    }
+  }, [isOpen, entry, selectedDate, form]);
 
   const watchGymStatus = form.watch("gymStatus");
 
@@ -575,8 +700,28 @@ function EntryForm({
     });
   };
 
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      if (file.size > 50 * 1024 * 1024) {
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setVideos((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const removeImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeVideo = (index: number) => {
+    setVideos((prev) => prev.filter((_, i) => i !== index));
   };
 
   const onSubmit = async (values: EntryFormValues) => {
@@ -586,6 +731,7 @@ function EntryForm({
     
     await onSave({
       date,
+      targetPlan: values.targetPlan || null,
       reflection: values.reflection || null,
       gymStatus: values.gymStatus || null,
       gymNotes: values.gymNotes || null,
@@ -593,6 +739,7 @@ function EntryForm({
       mood: values.mood || null,
       targetMet: values.targetMet,
       images: images.length > 0 ? images : null,
+      videos: videos.length > 0 ? videos : null,
     });
     
     setIsSubmitting(false);
@@ -601,15 +748,37 @@ function EntryForm({
   return (
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-entry-form">
       <DialogHeader>
-        <DialogTitle data-testid="text-dialog-title">
+        <DialogTitle className="flex items-center gap-2" data-testid="text-dialog-title">
+          <Moon className="h-5 w-5 text-primary" />
           {entry ? "Edit Entry" : "New Entry"} - {format(selectedDate, "MMMM d, yyyy")}
         </DialogTitle>
         <DialogDescription data-testid="text-dialog-description">
-          Record your thoughts, track your activities, and add photos to remember this day.
+          Record your thoughts, set your intentions, and capture memories.
         </DialogDescription>
       </DialogHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" data-testid="form-entry">
+          <FormField
+            control={form.control}
+            name="targetPlan"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-accent" />
+                  Today's Target
+                </FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="What do you want to achieve today?"
+                    className="min-h-[80px] resize-none border-accent/30 focus:border-accent"
+                    data-testid="input-target-plan"
+                    {...field}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="reflection"
@@ -640,78 +809,77 @@ function EntryForm({
                   <Smile className="h-4 w-4" />
                   How are you feeling?
                 </FormLabel>
-                <FormControl>
-                  <div className="flex flex-wrap gap-2">
-                    {(["great", "good", "okay", "low", "rough"] as Mood[]).map((m) => {
-                      const Icon = moodIcons[m];
-                      return (
-                        <Button
-                          key={m}
-                          type="button"
-                          variant={field.value === m ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => field.onChange(field.value === m ? "" : m)}
-                          className="gap-2"
-                          data-testid={`button-mood-${m}`}
-                        >
-                          <Icon className="h-4 w-4" />
-                          <span className="capitalize">{m}</span>
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </FormControl>
+                <div className="flex flex-wrap gap-2" data-testid="mood-options">
+                  {(["great", "good", "okay", "low", "rough"] as const).map((mood) => {
+                    const MoodIcon = moodIcons[mood];
+                    const isSelected = field.value === mood;
+                    return (
+                      <Button
+                        key={mood}
+                        type="button"
+                        variant={isSelected ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => field.onChange(isSelected ? "" : mood)}
+                        className="gap-1"
+                        data-testid={`button-mood-${mood}`}
+                      >
+                        <MoodIcon className="h-4 w-4" />
+                        <span className="capitalize">{mood}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
               </FormItem>
             )}
           />
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="gymStatus"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2">
+                  <Dumbbell className="h-4 w-4" />
+                  Workout
+                </FormLabel>
+                <Select
+                  value={field.value || ""}
+                  onValueChange={field.onChange}
+                  data-testid="select-gym-status"
+                >
+                  <FormControl>
+                    <SelectTrigger data-testid="select-gym-trigger">
+                      <SelectValue placeholder="Select workout status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="worked_out" data-testid="option-worked-out">Worked Out</SelectItem>
+                    <SelectItem value="rest_day" data-testid="option-rest-day">Rest Day</SelectItem>
+                    <SelectItem value="skipped" data-testid="option-skipped">Skipped</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+
+          {watchGymStatus === "worked_out" && (
             <FormField
               control={form.control}
-              name="gymStatus"
+              name="gymNotes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <Dumbbell className="h-4 w-4" />
-                    Workout
-                  </FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-gym-status">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="worked_out" data-testid="option-worked-out">Worked Out</SelectItem>
-                      <SelectItem value="rest_day" data-testid="option-rest-day">Rest Day</SelectItem>
-                      <SelectItem value="skipped" data-testid="option-skipped">Skipped</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Workout Notes</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="What exercises did you do?"
+                      data-testid="input-gym-notes"
+                      {...field}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />
-
-            {watchGymStatus && (
-              <FormField
-                control={form.control}
-                name="gymNotes"
-                render={({ field }) => (
-                  <FormItem className="md:col-span-1">
-                    <FormLabel className="flex items-center gap-2">
-                      Workout Notes
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="What did you do? (optional)"
-                        data-testid="input-gym-notes"
-                        {...field}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            )}
-          </div>
+          )}
 
           <FormField
             control={form.control}
@@ -720,11 +888,11 @@ function EntryForm({
               <FormItem>
                 <FormLabel className="flex items-center gap-2">
                   <Utensils className="h-4 w-4" />
-                  What did you eat?
+                  Food
                 </FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Breakfast, lunch, dinner..."
+                    placeholder="What did you eat today?"
                     className="min-h-[80px] resize-none"
                     data-testid="input-food"
                     {...field}
@@ -738,11 +906,16 @@ function EntryForm({
             control={form.control}
             name="targetMet"
             render={({ field }) => (
-              <FormItem className="flex items-center justify-between p-4 rounded-md bg-muted/50">
-                <FormLabel className="flex items-center gap-2 cursor-pointer">
-                  <Target className="h-4 w-4" />
-                  <span>Did you meet your target today?</span>
-                </FormLabel>
+              <FormItem className="flex items-center justify-between rounded-lg border p-4 border-accent/30 bg-accent/5">
+                <div className="space-y-0.5">
+                  <FormLabel className="flex items-center gap-2">
+                    <Star className="h-4 w-4 text-accent" />
+                    Target Met
+                  </FormLabel>
+                  <p className="text-sm text-muted-foreground">
+                    Did you achieve your goal for today?
+                  </p>
+                </div>
                 <FormControl>
                   <Switch
                     checked={field.value}
@@ -754,37 +927,75 @@ function EntryForm({
             )}
           />
 
-          <div className="space-y-2">
-            <FormLabel className="flex items-center gap-2">
-              <ImageIcon className="h-4 w-4" />
-              Photos
-            </FormLabel>
-            <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
-              {images.map((img, idx) => (
-                <div key={idx} className="relative aspect-square rounded-md overflow-hidden bg-muted group" data-testid={`image-preview-${idx}`}>
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(idx)}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity"
-                    data-testid={`button-remove-image-${idx}`}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-              <label className="aspect-square rounded-md border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center cursor-pointer hover-elevate transition-colors" data-testid="label-add-photo">
-                <ImageIcon className="h-6 w-6 text-muted-foreground mb-1" />
-                <span className="text-xs text-muted-foreground">Add Photo</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  data-testid="input-image-upload"
-                />
-              </label>
+          <div className="space-y-4">
+            <div>
+              <FormLabel className="flex items-center gap-2 mb-2">
+                <ImageIcon className="h-4 w-4" />
+                Photos
+              </FormLabel>
+              <div className="flex flex-wrap gap-2">
+                {images.map((img, idx) => (
+                  <div key={idx} className="relative w-20 h-20 rounded-md overflow-hidden group">
+                    <img src={img} alt="" className="w-full h-full object-cover" data-testid={`preview-image-${idx}`} />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(idx)}
+                      className="absolute top-1 right-1 bg-black/50 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      data-testid={`button-remove-image-${idx}`}
+                    >
+                      <X className="h-3 w-3 text-white" />
+                    </button>
+                  </div>
+                ))}
+                <label className="w-20 h-20 border-2 border-dashed rounded-md flex items-center justify-center cursor-pointer hover-elevate">
+                  <Plus className="h-6 w-6 text-muted-foreground" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    data-testid="input-image-upload"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <FormLabel className="flex items-center gap-2 mb-2">
+                <Video className="h-4 w-4" />
+                Videos
+              </FormLabel>
+              <div className="flex flex-wrap gap-2">
+                {videos.map((vid, idx) => (
+                  <div key={idx} className="relative w-32 h-20 rounded-md overflow-hidden group bg-muted">
+                    <video src={vid} className="w-full h-full object-cover" data-testid={`preview-video-${idx}`} />
+                    <button
+                      type="button"
+                      onClick={() => removeVideo(idx)}
+                      className="absolute top-1 right-1 bg-black/50 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      data-testid={`button-remove-video-${idx}`}
+                    >
+                      <X className="h-3 w-3 text-white" />
+                    </button>
+                  </div>
+                ))}
+                <label className="w-32 h-20 border-2 border-dashed rounded-md flex items-center justify-center cursor-pointer hover-elevate">
+                  <div className="flex flex-col items-center">
+                    <Video className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground mt-1">Add video</span>
+                  </div>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    capture="environment"
+                    onChange={handleVideoUpload}
+                    className="hidden"
+                    data-testid="input-video-upload"
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Max 50MB per video</p>
             </div>
           </div>
 
@@ -792,7 +1003,7 @@ function EntryForm({
             <Button type="button" variant="outline" onClick={onClose} data-testid="button-cancel">
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting} data-testid="button-save-entry">
+            <Button type="submit" disabled={isSubmitting} data-testid="button-save">
               {isSubmitting ? "Saving..." : "Save Entry"}
             </Button>
           </div>

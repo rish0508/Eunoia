@@ -1,5 +1,6 @@
-import { type User, type InsertUser, type JournalEntry, type InsertJournalEntry } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { users, journalEntries, type User, type InsertUser, type JournalEntry, type InsertJournalEntry } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -14,89 +15,55 @@ export interface IStorage {
   deleteEntry(id: string): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private entries: Map<string, JournalEntry>;
-
-  constructor() {
-    this.users = new Map();
-    this.entries = new Map();
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async getAllEntries(): Promise<JournalEntry[]> {
-    return Array.from(this.entries.values()).sort((a, b) => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
+    return await db.select().from(journalEntries).orderBy(desc(journalEntries.date));
   }
 
   async getEntryById(id: string): Promise<JournalEntry | undefined> {
-    return this.entries.get(id);
+    const [entry] = await db.select().from(journalEntries).where(eq(journalEntries.id, id));
+    return entry || undefined;
   }
 
   async getEntryByDate(date: string): Promise<JournalEntry | undefined> {
     const datePrefix = date.split("T")[0];
-    return Array.from(this.entries.values()).find((entry) =>
-      entry.date.startsWith(datePrefix)
-    );
+    const entries = await db.select().from(journalEntries);
+    return entries.find((entry) => entry.date.startsWith(datePrefix));
   }
 
   async createEntry(insertEntry: InsertJournalEntry): Promise<JournalEntry> {
-    const id = randomUUID();
-    const entry: JournalEntry = {
-      id,
-      date: insertEntry.date,
-      reflection: insertEntry.reflection ?? null,
-      gymStatus: insertEntry.gymStatus ?? null,
-      gymNotes: insertEntry.gymNotes ?? null,
-      food: insertEntry.food ?? null,
-      mood: insertEntry.mood ?? null,
-      targetMet: insertEntry.targetMet ?? false,
-      images: insertEntry.images ?? null,
-      createdAt: new Date(),
-    };
-    this.entries.set(id, entry);
+    const [entry] = await db.insert(journalEntries).values(insertEntry).returning();
     return entry;
   }
 
   async updateEntry(id: string, updates: Partial<InsertJournalEntry>): Promise<JournalEntry | undefined> {
-    const existing = this.entries.get(id);
-    if (!existing) return undefined;
-
-    const updated: JournalEntry = {
-      ...existing,
-      date: updates.date ?? existing.date,
-      reflection: updates.reflection !== undefined ? updates.reflection : existing.reflection,
-      gymStatus: updates.gymStatus !== undefined ? updates.gymStatus : existing.gymStatus,
-      gymNotes: updates.gymNotes !== undefined ? updates.gymNotes : existing.gymNotes,
-      food: updates.food !== undefined ? updates.food : existing.food,
-      mood: updates.mood !== undefined ? updates.mood : existing.mood,
-      targetMet: updates.targetMet !== undefined ? updates.targetMet : existing.targetMet,
-      images: updates.images !== undefined ? updates.images : existing.images,
-    };
-    this.entries.set(id, updated);
-    return updated;
+    const [entry] = await db
+      .update(journalEntries)
+      .set(updates)
+      .where(eq(journalEntries.id, id))
+      .returning();
+    return entry || undefined;
   }
 
   async deleteEntry(id: string): Promise<boolean> {
-    return this.entries.delete(id);
+    const result = await db.delete(journalEntries).where(eq(journalEntries.id, id)).returning();
+    return result.length > 0;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

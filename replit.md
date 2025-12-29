@@ -1,12 +1,14 @@
-# Personal Journaling App
+# Eunoia - Personal Journaling App
 
 ## Overview
 
-A personal journaling application designed to encourage daily reflection through a calm, distraction-free interface. The app allows users to create journal entries with mood tracking, gym status logging, food notes, and image attachments. Built with a Notion-inspired minimalist design philosophy combined with Day One's warmth.
+A personal journaling application named "Eunoia" featuring a celestial/night sky theme with stars, moons, and daily motivational quotes. The app encourages daily reflection with target-setting, mood tracking, gym/workout logging, food notes, and photo/video attachments.
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+- Preferred communication style: Simple, everyday language.
+- App name: Eunoia
+- Design theme: Celestial (stars, moons, motivational quotes)
 
 ## System Architecture
 
@@ -14,38 +16,50 @@ Preferred communication style: Simple, everyday language.
 - **Framework**: React with TypeScript using Vite as the build tool
 - **Routing**: Wouter for lightweight client-side routing
 - **State Management**: TanStack React Query for server state and data fetching
-- **Styling**: Tailwind CSS with shadcn/ui component library (New York style)
+- **Styling**: Tailwind CSS with shadcn/ui component library
 - **Theme Support**: Custom ThemeProvider with light/dark mode toggle, persisted to localStorage
 
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js
 - **API Design**: RESTful API with JSON request/response format
 - **Data Validation**: Zod schemas with drizzle-zod for type-safe validation
+- **Object Storage**: Replit Object Storage for video uploads
 - **Build System**: Custom build script using esbuild for server bundling and Vite for client
 
 ### Data Storage
 - **ORM**: Drizzle ORM with PostgreSQL dialect
+- **Database**: PostgreSQL (Replit built-in)
 - **Schema Location**: Shared schema in `/shared/schema.ts` for type sharing between client and server
-- **Current Storage**: In-memory storage implementation (`MemStorage`) with interface ready for database migration
-- **Database Migrations**: Drizzle Kit configured with migrations output to `/migrations`
+- **Storage Implementation**: DatabaseStorage class using Drizzle ORM
 
 ### Key Data Models
 - **Users**: Basic user model with id, username, password
-- **Journal Entries**: Rich entries with date, reflection text, gym status, gym notes, food, mood, target achievement flag, images array, and timestamps
-- **Enums**: Gym status options (worked_out, rest_day, skipped) and mood options (great, good, okay, low, rough)
+- **Journal Entries**: Rich entries with:
+  - date: Entry date/time
+  - targetPlan: Morning goal/intention setting
+  - reflection: Daily reflection text
+  - gymStatus: Workout status (worked_out, rest_day, skipped)
+  - gymNotes: Workout details
+  - food: Food logging
+  - mood: Mood indicator (great, good, okay, low, rough)
+  - targetMet: Boolean for goal achievement
+  - images: Array of base64-encoded photos
+  - videos: Array of video URLs
+  - createdAt: Timestamp
 
 ### Design System
 - **Typography**: Inter font family from Google Fonts
-- **Color Scheme**: Warm, muted palette with green accent colors for primary actions
-- **Layout**: Two-column desktop layout (w-64 sidebar + max-w-3xl content), single column mobile
-- **Spacing**: Tailwind spacing scale (2, 4, 6, 8, 12, 16 units)
+- **Color Scheme**: Celestial theme with purple primaries and golden accents
+- **Visual Elements**: Animated star field, moon icons, sparkle decorations
+- **Daily Quotes**: Rotating motivational quotes displayed each day
+- **Layout**: Centered content (max-w-4xl), responsive single column
 
 ## External Dependencies
 
 ### UI Component Libraries
 - **shadcn/ui**: Full component set via Radix UI primitives
 - **Radix UI**: Dialog, Select, Switch, Tabs, Toast, Tooltip, and more
-- **Lucide React**: Icon library
+- **Lucide React**: Icon library (Moon, Star, Sparkles, etc.)
 
 ### Data & Forms
 - **TanStack React Query**: Data fetching and caching
@@ -55,11 +69,24 @@ Preferred communication style: Simple, everyday language.
 ### Date Handling
 - **date-fns**: Date manipulation and formatting
 
+### File Storage
+- **@google-cloud/storage**: Object storage client
+- **Uppy**: File upload library (for video uploads)
+
 ### Database
 - **Drizzle ORM**: Database ORM configured for PostgreSQL
-- **connect-pg-simple**: PostgreSQL session store (available but not currently active)
+- **pg**: PostgreSQL client
 
 ### Build Tools
 - **Vite**: Frontend build tool with React plugin
 - **esbuild**: Server bundling for production
 - **TypeScript**: Full type coverage across client, server, and shared code
+
+## Recent Changes
+- Added celestial theme with stars, moons, and purple/gold colors
+- Added targetPlan field for morning goal-setting
+- Added video upload support
+- Added daily motivational quotes
+- Fixed form reset bug when switching dates
+- Migrated from in-memory storage to PostgreSQL database
+- Renamed app to "Eunoia"
