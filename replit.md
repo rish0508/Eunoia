@@ -82,7 +82,17 @@ A personal journaling application named "Eunoia" featuring a celestial/night sky
 - **esbuild**: Server bundling for production
 - **TypeScript**: Full type coverage across client, server, and shared code
 
+## Deployment Configuration
+
+### Cloudflare Deployment
+- **Frontend**: Cloudflare Pages (Vite/React build)
+- **Backend**: Cloudflare Worker (separate deployment)
+- **API URL Configuration**: Uses `VITE_API_BASE_URL` environment variable
+- **API Helper**: `client/src/lib/api.ts` provides `apiUrl()` function for all API calls
+- For Cloudflare Pages, set `VITE_API_BASE_URL` to your Worker URL (e.g., `https://eunoia.yourname.workers.dev`)
+
 ## Recent Changes
+- Added configurable API base URL for Cloudflare deployment
 - Added celestial theme with stars, moons, and purple/gold colors
 - Added targetPlan field for morning goal-setting
 - Added video upload support

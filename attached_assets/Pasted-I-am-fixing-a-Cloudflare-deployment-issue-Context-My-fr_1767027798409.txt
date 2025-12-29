@@ -1,0 +1,83 @@
+I am fixing a Cloudflare deployment issue.
+
+Context:
+- My frontend is a Vite/React app deployed on Cloudflare Pages at:
+  https://eunoia-epu.pages.dev
+- My backend API (auth + database) lives on a Cloudflare Worker at:
+  https://eunoia.rishabhmathur0508.workers.dev
+- Cloudflare Pages does NOT support /api/* routes unless Pages Functions are used.
+- Right now, the frontend is incorrectly calling:
+  https://eunoia-epu.pages.dev/api/...
+  which returns 405 Method Not Allowed.
+
+Goal:
+- Route ALL frontend API calls to the Cloudflare Worker instead of Pages.
+- Use an environment variable (VITE_API_BASE_URL) so the API URL is configurable.
+- Do NOT hardcode the API URL in multiple places.
+
+What to do (IMPORTANT – follow exactly):
+
+1) Create a reusable API helper.
+
+Create this file:
+src/lib/api.ts
+
+Paste exactly:
+
+--------------------------------
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+
+export function apiUrl(path: string) {
+  return `${API_BASE}${path}`;
+}
+--------------------------------
+
+2) Update ALL fetch() calls that hit /api/*
+
+Every instance like:
+fetch("/api/auth/login", ...)
+
+OR
+fetch("/api/auth/signup", ...)
+
+OR
+fetch("/api/journal/...", ...)
+
+MUST be changed to:
+
+fetch(apiUrl("/api/auth/login"), ...)
+
+(fetch path stays the same, only wrapped with apiUrl)
+
+Example (login):
+
+--------------------------------
+import { apiUrl } from "../lib/api";
+
+await fetch(apiUrl("/api/auth/login"), {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email, password }),
+});
+--------------------------------
+
+Do the same replacement for signup, journal create, journal fetch, etc.
+
+3) Do NOT change backend logic or routes.
+Backend routes already exist on the Cloudflare Worker.
+
+4) Environment variable:
+The frontend expects this environment variable to exist:
+
+VITE_API_BASE_URL = https://eunoia.rishabhmathur0508.workers.dev
+
+Cloudflare Pages will provide this at build time.
+
+Expected Result:
+- Frontend no longer calls eunoia-epu.pages.dev/api/*
+- Frontend calls eunoia.rishabhmathur0508.workers.dev/api/*
+- Auth works
+- Data persists in Cloudflare D1
+- App works across devices
+
+If you see a CORS error after this, do NOT modify frontend — backend CORS will be handled separately.
