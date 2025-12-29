@@ -19,6 +19,7 @@ export type User = typeof users.$inferSelect;
 
 export const journalEntries = pgTable("journal_entries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
   date: text("date").notNull(),
   targetPlan: text("target_plan"),
   reflection: text("reflection"),
@@ -37,6 +38,10 @@ export const insertJournalEntrySchema = createInsertSchema(journalEntries).omit(
   createdAt: true,
 });
 
+export const clientEntrySchema = insertJournalEntrySchema.omit({
+  userId: true,
+});
+
 export const entryFormSchema = z.object({
   targetPlan: z.string().optional().default(""),
   reflection: z.string().optional().default(""),
@@ -49,6 +54,7 @@ export const entryFormSchema = z.object({
 
 export type EntryFormValues = z.infer<typeof entryFormSchema>;
 export type InsertJournalEntry = z.infer<typeof insertJournalEntrySchema>;
+export type ClientEntryData = z.infer<typeof clientEntrySchema>;
 export type JournalEntry = typeof journalEntries.$inferSelect;
 
 export const gymStatusOptions = ["worked_out", "rest_day", "skipped"] as const;

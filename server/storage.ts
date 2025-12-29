@@ -1,15 +1,15 @@
 import { users, journalEntries, type User, type InsertUser, type JournalEntry, type InsertJournalEntry } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
-  getAllEntries(): Promise<JournalEntry[]>;
+  getAllEntriesForUser(userId: string): Promise<JournalEntry[]>;
   getEntryById(id: string): Promise<JournalEntry | undefined>;
-  getEntryByDate(date: string): Promise<JournalEntry | undefined>;
+  getEntryByDateForUser(userId: string, date: string): Promise<JournalEntry | undefined>;
   createEntry(entry: InsertJournalEntry): Promise<JournalEntry>;
   updateEntry(id: string, entry: Partial<InsertJournalEntry>): Promise<JournalEntry | undefined>;
   deleteEntry(id: string): Promise<boolean>;
@@ -31,8 +31,10 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getAllEntries(): Promise<JournalEntry[]> {
-    return await db.select().from(journalEntries).orderBy(desc(journalEntries.date));
+  async getAllEntriesForUser(userId: string): Promise<JournalEntry[]> {
+    return await db.select().from(journalEntries)
+      .where(eq(journalEntries.userId, userId))
+      .orderBy(desc(journalEntries.date));
   }
 
   async getEntryById(id: string): Promise<JournalEntry | undefined> {
@@ -40,9 +42,10 @@ export class DatabaseStorage implements IStorage {
     return entry || undefined;
   }
 
-  async getEntryByDate(date: string): Promise<JournalEntry | undefined> {
+  async getEntryByDateForUser(userId: string, date: string): Promise<JournalEntry | undefined> {
     const datePrefix = date.split("T")[0];
-    const entries = await db.select().from(journalEntries);
+    const entries = await db.select().from(journalEntries)
+      .where(eq(journalEntries.userId, userId));
     return entries.find((entry) => entry.date.startsWith(datePrefix));
   }
 

@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, addMonths, subMonths } from "date-fns";
-import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, BookOpen, Utensils, Dumbbell, Target, Image as ImageIcon, Video, Smile, Frown, Meh, ThumbsUp, ThumbsDown, X, Star, Moon, Sparkles } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, BookOpen, Utensils, Dumbbell, Target, Image as ImageIcon, Video, Smile, Frown, Meh, ThumbsUp, ThumbsDown, X, Star, Moon, Sparkles, TrendingUp, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { entryFormSchema, dailyQuotes, type JournalEntry, type GymStatus, type Mood, type InsertJournalEntry, type EntryFormValues } from "@shared/schema";
+import { Link } from "wouter";
+import { entryFormSchema, dailyQuotes, type JournalEntry, type GymStatus, type Mood, type ClientEntryData, type EntryFormValues } from "@shared/schema";
 
 const moodIcons = {
   great: ThumbsUp,
@@ -96,10 +97,24 @@ export default function Home() {
     queryKey: ["/api/entries"],
   });
 
+  const { data: user } = useQuery<{ id: string; username: string }>({
+    queryKey: ["/api/auth/me"],
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/auth/logout");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({ title: "Logged out", description: "See you next time!" });
+    },
+  });
+
   const todayEntry = entries.find((e) => isSameDay(parseISO(e.date), selectedDate));
   const dailyQuote = getDailyQuote(selectedDate);
 
-  const handleSaveEntry = async (formData: InsertJournalEntry) => {
+  const handleSaveEntry = async (formData: ClientEntryData) => {
     try {
       if (editingEntry) {
         await apiRequest("PATCH", `/api/entries/${editingEntry.id}`, formData);
@@ -152,7 +167,7 @@ export default function Home() {
               Eunoia
             </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant={view === "today" ? "default" : "ghost"}
               size="sm"
@@ -170,7 +185,30 @@ export default function Home() {
               <CalendarIcon className="h-4 w-4 mr-1" />
               Calendar
             </Button>
+            <Link href="/analytics">
+              <Button variant="ghost" size="sm" data-testid="button-analytics">
+                <TrendingUp className="h-4 w-4 mr-1" />
+                Insights
+              </Button>
+            </Link>
             <ThemeToggle />
+            {user && (
+              <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border">
+                <Badge variant="secondary" className="flex items-center gap-1" data-testid="badge-username">
+                  <User className="h-3 w-3" />
+                  {user.username}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => logoutMutation.mutate()}
+                  disabled={logoutMutation.isPending}
+                  data-testid="button-logout"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -636,7 +674,7 @@ function EntryForm({
 }: {
   entry: JournalEntry | null;
   selectedDate: Date;
-  onSave: (data: InsertJournalEntry) => void;
+  onSave: (data: ClientEntryData) => void;
   onClose: () => void;
   isOpen: boolean;
 }) {
