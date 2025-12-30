@@ -1,14 +1,13 @@
-const WORKER_FALLBACK = "https://eunoia.rishabhmathur0508.workers.dev";
+const RENDER_BACKEND = "https://eunoia-backend-kmga.onrender.com";
 
-// Vite injects VITE_* at build time. If Cloudflare Pages fails to inject it,
-// this fallback ensures production still calls the Worker.
+// Vite injects VITE_* at build time. If not set, use Render backend in production.
 const raw = (import.meta.env.VITE_API_BASE_URL ?? "").toString().trim();
 
 const API_BASE =
   raw.length > 0
     ? raw
     : import.meta.env.PROD
-      ? WORKER_FALLBACK
+      ? RENDER_BACKEND
       : "";
 
 export function apiUrl(path: string) {
