@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { Pool } from "pg";
 
 const app = express();
 const httpServer = createServer(app);
@@ -12,6 +13,18 @@ declare module "http" {
   }
 }
 
+// ---------- DB (Postgres) ----------
+const DATABASE_URL = process.env.DATABASE_URL;
+const pool =
+  DATABASE_URL && DATABASE_URL.length > 0
+    ? new Pool({
+        connectionString: DATABASE_URL,
+        // Render Postgres typically requires SSL
+        ssl: { rejectUnauthorized: false },
+      })
+    : null;
+
+// ---------- Body parsing ----------
 app.use(
   express.json({
     verify: (req, _res, buf) => {
@@ -33,6 +46,7 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
+// ---------- Request logging for /api ----------
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -40,8 +54,8 @@ app.use((req, res, next) => {
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
+    capturedJsonResponse = bodyJson as any;
+    return originalResJson.apply(res, [bodyJson, ...args] as any);
   };
 
   res.on("finish", () => {
@@ -51,7 +65,6 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
       log(logLine);
     }
   });
@@ -59,20 +72,80 @@ app.use((req, res, next) => {
   next();
 });
 
+// ---------- Hard API routes (for testing) ----------
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, env: process.env.NODE_ENV || "unknown" });
+});
+
+app.get("/api/db-test", async (_req, res) => {
+  try {
+    if (!pool) {
+      return res.status(500).json({
+        ok: false,
+        error: "DATABASE_URL is missing on Render Environment",
+      });
+    }
+
+    const r1 = await pool.query("select 1 as ok");
+    const tables = await pool.query(
+      `select tablename
+       from pg_catalog.pg_tables
+       where schemaname='public'
+       order by tablename;`,
+    );
+
+    return res.json({
+      ok: true,
+      ping: r1.rows?.[0],
+      tables: tables.rows.map((t) => t.tablename),
+    });
+  } catch (e: any) {
+    return res.status(500).json({
+      ok: false,
+      error: e?.message || String(e),
+    });
+  }
+});
+
+app.get("/api/schema/users", async (_req, res) => {
+  try {
+    if (!pool) {
+      return res.status(500).json({
+        ok: false,
+        error: "DATABASE_URL is missing on Render Environment",
+      });
+    }
+
+    const cols = await pool.query(
+      `select column_name, data_type, is_nullable
+       from information_schema.columns
+       where table_schema='public' and table_name='users'
+       order by ordinal_position;`,
+    );
+
+    return res.json({ ok: true, columns: cols.rows });
+  } catch (e: any) {
+    return res.status(500).json({
+      ok: false,
+      error: e?.message || String(e),
+    });
+  }
+});
+
+// ---------- Main boot ----------
 (async () => {
+  // Your app’s routes (auth, journals, etc.)
   await registerRoutes(httpServer, app);
 
+  // Error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
     res.status(status).json({ message });
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Static only in production (after API routes)
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
@@ -80,10 +153,6 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {
