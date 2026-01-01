@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, addMonths, subMonths } from "date-fns";
-import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, BookOpen, Utensils, Dumbbell, Target, Image as ImageIcon, Video, Smile, Frown, Meh, ThumbsUp, ThumbsDown, X, Star, Moon, Sparkles, TrendingUp, LogOut, User } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, BookOpen, Utensils, Dumbbell, Target, Image as ImageIcon, Smile, Frown, Meh, ThumbsUp, ThumbsDown, X, Star, Moon, Sparkles, TrendingUp, LogOut, User, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -483,29 +483,6 @@ function EntryCard({
           </div>
         )}
 
-        {entry.videos && entry.videos.length > 0 && (
-          <div className="space-y-2" data-testid="section-videos">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Video className="h-4 w-4" />
-              <span className="text-sm font-medium">Videos</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {entry.videos.map((vid, idx) => (
-                <div
-                  key={idx}
-                  className="aspect-video rounded-md overflow-hidden bg-muted"
-                >
-                  <video
-                    src={vid}
-                    controls
-                    className="w-full h-full object-cover"
-                    data-testid={`video-entry-${idx}`}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -679,8 +656,10 @@ function EntryForm({
   isOpen: boolean;
 }) {
   const [images, setImages] = useState<string[]>([]);
-  const [videos, setVideos] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Photo of the Week: Only allow uploads on Sundays (day 0)
+  const isSunday = selectedDate.getDay() === 0;
 
   const form = useForm<EntryFormValues>({
     resolver: zodResolver(entryFormSchema),
@@ -707,7 +686,6 @@ function EntryForm({
         targetMet: entry.targetMet || false,
       });
       setImages(entry.images || []);
-      setVideos(entry.videos || []);
     } else {
       form.reset({
         targetPlan: "",
@@ -719,7 +697,6 @@ function EntryForm({
         targetMet: false,
       });
       setImages([]);
-      setVideos([]);
     }
   }, [isOpen, entry, selectedDate, form]);
 
@@ -738,28 +715,8 @@ function EntryForm({
     });
   };
 
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    Array.from(files).forEach((file) => {
-      if (file.size > 50 * 1024 * 1024) {
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setVideos((prev) => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
   const removeImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const removeVideo = (index: number) => {
-    setVideos((prev) => prev.filter((_, i) => i !== index));
   };
 
   const onSubmit = async (values: EntryFormValues) => {
@@ -777,7 +734,7 @@ function EntryForm({
       mood: values.mood || null,
       targetMet: values.targetMet,
       images: images.length > 0 ? images : null,
-      videos: videos.length > 0 ? videos : null,
+      videos: null,
     });
     
     setIsSubmitting(false);
@@ -965,77 +922,53 @@ function EntryForm({
             )}
           />
 
-          <div className="space-y-4">
+          {(isSunday || images.length > 0) && (
             <div>
               <FormLabel className="flex items-center gap-2 mb-2">
-                <ImageIcon className="h-4 w-4" />
-                Photos
+                <Camera className="h-4 w-4 text-accent" />
+                Photo of the Week
               </FormLabel>
+              {isSunday ? (
+                <p className="text-xs text-muted-foreground mb-2">
+                  Capture a highlight from your week! Photos can only be added on Sundays.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground mb-2">
+                  Weekly photo (upload available on Sundays only)
+                </p>
+              )}
               <div className="flex flex-wrap gap-2">
                 {images.map((img, idx) => (
-                  <div key={idx} className="relative w-20 h-20 rounded-md overflow-hidden group">
+                  <div key={idx} className="relative w-24 h-24 rounded-md overflow-hidden group">
                     <img src={img} alt="" className="w-full h-full object-cover" data-testid={`preview-image-${idx}`} />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(idx)}
-                      className="absolute top-1 right-1 bg-black/50 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      data-testid={`button-remove-image-${idx}`}
-                    >
-                      <X className="h-3 w-3 text-white" />
-                    </button>
+                    {isSunday && (
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="absolute top-1 right-1 bg-black/50 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        data-testid={`button-remove-image-${idx}`}
+                      >
+                        <X className="h-3 w-3 text-white" />
+                      </button>
+                    )}
                   </div>
                 ))}
-                <label className="w-20 h-20 border-2 border-dashed rounded-md flex items-center justify-center cursor-pointer hover-elevate">
-                  <Plus className="h-6 w-6 text-muted-foreground" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    data-testid="input-image-upload"
-                  />
-                </label>
+                {isSunday && images.length === 0 && (
+                  <label className="w-24 h-24 border-2 border-dashed border-accent/30 rounded-md flex flex-col items-center justify-center cursor-pointer hover-elevate bg-accent/5">
+                    <Camera className="h-6 w-6 text-accent/60" />
+                    <span className="text-xs text-muted-foreground mt-1">Add photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      data-testid="input-image-upload"
+                    />
+                  </label>
+                )}
               </div>
             </div>
-
-            <div>
-              <FormLabel className="flex items-center gap-2 mb-2">
-                <Video className="h-4 w-4" />
-                Videos
-              </FormLabel>
-              <div className="flex flex-wrap gap-2">
-                {videos.map((vid, idx) => (
-                  <div key={idx} className="relative w-32 h-20 rounded-md overflow-hidden group bg-muted">
-                    <video src={vid} className="w-full h-full object-cover" data-testid={`preview-video-${idx}`} />
-                    <button
-                      type="button"
-                      onClick={() => removeVideo(idx)}
-                      className="absolute top-1 right-1 bg-black/50 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      data-testid={`button-remove-video-${idx}`}
-                    >
-                      <X className="h-3 w-3 text-white" />
-                    </button>
-                  </div>
-                ))}
-                <label className="w-32 h-20 border-2 border-dashed rounded-md flex items-center justify-center cursor-pointer hover-elevate">
-                  <div className="flex flex-col items-center">
-                    <Video className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground mt-1">Add video</span>
-                  </div>
-                  <input
-                    type="file"
-                    accept="video/*"
-                    capture="environment"
-                    onChange={handleVideoUpload}
-                    className="hidden"
-                    data-testid="input-video-upload"
-                  />
-                </label>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Max 50MB per video</p>
-            </div>
-          </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose} data-testid="button-cancel">
