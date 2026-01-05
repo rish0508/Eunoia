@@ -72,9 +72,6 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                   Start Your Journal
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="lg" onClick={onGetStarted} data-testid="button-learn-more">
-                  Learn More
-                </Button>
               </div>
             </div>
             <div className="relative hidden md:block">
@@ -179,7 +176,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             </h3>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
               <span className="text-foreground font-medium">Eunoia</span> (pronounced "you-noy-ah") is an ancient Greek word 
-              meaning "beautiful thinking" or "a well-mind." It represents a state of goodwill and mental clarity — 
+              meaning "beautiful thinking" or "a well-mind." It represents a state of goodwill and mental clarity, 
               the very essence of what mindful journaling can help you achieve.
             </p>
             <p className="text-muted-foreground leading-relaxed max-w-2xl mx-auto">
@@ -197,8 +194,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                 Begin your journey today
               </h3>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                Join thousands of journalers who use Eunoia to cultivate mindfulness, track their wellness, 
-                and build a deeper understanding of themselves.
+                Use Eunoia to cultivate mindfulness, track your wellness, 
+                and build a deeper understanding of yourself.
               </p>
               <Button size="lg" onClick={onGetStarted} data-testid="button-cta">
                 <Sparkles className="mr-2 h-4 w-4" />
