@@ -91,6 +91,8 @@ A personal journaling application named "Eunoia" featuring a celestial/night sky
 - **API Helper**: `client/src/lib/api.ts` provides `apiUrl()` function for all API calls
 
 ## Recent Changes
+- Added compelling landing page inspired by Penzu and Journal Cloud with hero section, features, and philosophy explanation
+- Fixed password visibility toggle (open eye = visible password, closed eye = hidden)
 - Added configurable API base URL for Cloudflare deployment
 - Added celestial theme with stars, moons, and purple/gold colors
 - Added targetPlan field for morning goal-setting
