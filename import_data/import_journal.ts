@@ -8,9 +8,25 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-const IMPORT_DIR = path.join(process.cwd(), "server/import_data");
+// IMPORTANT: correct folder
+const IMPORT_DIR = path.join(process.cwd(), "import_data");
 
-async function importCSV(filePath: string) {
+// username we are importing for
+const USERNAME = "Rish05";
+
+async function getUserId(): Promise<number> {
+  const result = await pool.query("SELECT id FROM users WHERE username = $1", [
+    USERNAME,
+  ]);
+
+  if (result.rows.length === 0) {
+    throw new Error(`User ${USERNAME} not found`);
+  }
+
+  return result.rows[0].id;
+}
+
+async function importCSV(filePath: string, userId: number) {
   return new Promise<void>((resolve, reject) => {
     const rows: any[] = [];
 
@@ -23,10 +39,11 @@ async function importCSV(filePath: string) {
             await pool.query(
               `
               INSERT INTO journal_entries
-              (date, reflection, food, workout, mood)
-              VALUES ($1, $2, $3, $4, $5)
+              (user_id, date, reflection, food, workout, mood)
+              VALUES ($1, $2, $3, $4, $5, $6)
               `,
               [
+                userId,
                 row.date || null,
                 row.reflection || row.entry || null,
                 row.food || null,
@@ -35,7 +52,10 @@ async function importCSV(filePath: string) {
               ],
             );
           }
-          console.log(`Imported ${rows.length} rows from ${filePath}`);
+
+          console.log(
+            `Imported ${rows.length} rows from ${path.basename(filePath)}`,
+          );
           resolve();
         } catch (err) {
           reject(err);
@@ -45,18 +65,21 @@ async function importCSV(filePath: string) {
 }
 
 async function run() {
+  const userId = await getUserId();
+  console.log(`Importing data for user_id=${userId} (${USERNAME})`);
+
   const files = fs.readdirSync(IMPORT_DIR).filter((f) => f.endsWith(".csv"));
 
   for (const file of files) {
     const fullPath = path.join(IMPORT_DIR, file);
-    await importCSV(fullPath);
+    await importCSV(fullPath, userId);
   }
 
-  console.log("✅ ALL CSV FILES IMPORTED");
+  console.log("✅ ALL CSV FILES IMPORTED FOR Rish05");
   process.exit(0);
 }
 
 run().catch((err) => {
-  console.error(err);
+  console.error("❌ Import failed:", err);
   process.exit(1);
 });
