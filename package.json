@@ -8,6 +8,7 @@
     "build": "tsx script/build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
+    "import:data": "tsx server/import_data/import_journal.ts",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
