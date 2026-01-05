@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
@@ -6,12 +7,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import Home from "@/pages/home";
 import AuthPage from "@/pages/auth";
+import LandingPage from "@/pages/landing";
 import AnalyticsPage from "@/pages/analytics";
 import NotFound from "@/pages/not-found";
 
 console.log("CF API BASE:", import.meta.env.VITE_API_BASE_URL, "PROD?", import.meta.env.PROD);
 
 function AuthenticatedApp() {
+  const [showAuth, setShowAuth] = useState(false);
   const { data: user, isLoading, error } = useQuery<{ id: string; username: string }>({
     queryKey: ["/api/auth/me"],
     retry: false,
@@ -26,7 +29,10 @@ function AuthenticatedApp() {
   }
 
   if (error || !user) {
-    return <AuthPage />;
+    if (showAuth) {
+      return <AuthPage />;
+    }
+    return <LandingPage onGetStarted={() => setShowAuth(true)} />;
   }
 
   return (
