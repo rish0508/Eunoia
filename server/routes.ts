@@ -6,7 +6,8 @@ import { z } from "zod";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import bcrypt from "bcryptjs";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import pgSession from "connect-pg-simple";
+import pg from "pg";
 
 declare module "express-session" {
   interface SessionData {
@@ -14,7 +15,15 @@ declare module "express-session" {
   }
 }
 
-const MemStore = MemoryStore(session);
+const PgStore = pgSession(session);
+
+// Create a pool for session store
+const sessionPool = process.env.DATABASE_URL
+  ? new pg.Pool({
+      connectionString: process.env.DATABASE_URL.replace(/&channel_binding=require/g, ''),
+      ssl: { rejectUnauthorized: false },
+    })
+  : null;
 
 function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId) {
@@ -28,23 +37,47 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || "eunoia-session-secret-key-2024",
-      resave: false,
-      saveUninitialized: false,
-      store: new MemStore({
-        checkPeriod: 86400000,
-      }),
-      cookie: {
-        secure: false,
-        httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      },
-    })
-  );
+  // Determine if we're in production (Vercel sets NODE_ENV=production)
+  const isProduction = process.env.NODE_ENV === "production";
 
-  registerObjectStorageRoutes(app);
+  // Session configuration - use PG store in production, memory in dev
+  const sessionConfig: session.SessionOptions = {
+    secret: process.env.SESSION_SECRET || "eunoia-session-secret-key-2024",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: isProduction, // HTTPS only in production
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: isProduction ? "none" : "lax", // "none" required for cross-site cookies
+    },
+  };
+
+  // Use PG session store if DATABASE_URL is available
+  if (sessionPool) {
+    sessionConfig.store = new PgStore({
+      pool: sessionPool,
+      tableName: "session", // Will auto-create if not exists
+      createTableIfMissing: true,
+    });
+  } else {
+    // Fallback to memory store for local development
+    const MemoryStore = (await import("memorystore")).default(session);
+    sessionConfig.store = new MemoryStore({
+      checkPeriod: 86400000,
+    });
+  }
+
+  app.use(session(sessionConfig));
+
+  // Skip object storage routes if not on Replit
+  if (process.env.REPL_ID) {
+    try {
+      registerObjectStorageRoutes(app);
+    } catch (e) {
+      console.log("Object storage routes not available");
+    }
+  }
 
   app.post("/api/auth/register", async (req, res) => {
     try {
@@ -64,7 +97,14 @@ export async function registerRoutes(
 
       req.session.userId = user.id;
 
-      res.status(201).json({ id: user.id, username: user.username });
+      // Explicitly save session before responding
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ error: "Failed to create session" });
+        }
+        res.status(201).json({ id: user.id, username: user.username });
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid input", details: error.errors });
@@ -90,7 +130,14 @@ export async function registerRoutes(
 
       req.session.userId = user.id;
 
-      res.json({ id: user.id, username: user.username });
+      // Explicitly save session before responding
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ error: "Failed to create session" });
+        }
+        res.json({ id: user.id, username: user.username });
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid input", details: error.errors });
